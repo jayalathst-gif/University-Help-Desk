@@ -1,54 +1,60 @@
+import { createTicket } from "./api.js";
 
 document.addEventListener("DOMContentLoaded", () => {
-    const form = document.getElementById("create-ticket-form");
+  const token = localStorage.getItem("access_token");
+  if (!token) {
+    alert("You must be logged in to view this page.");
+    window.location.href = "login.html"; // Send them back to login
+    return; // Stop the script
+  }
 
-    form.addEventListener("submit", async (e) => {
-        e.preventDefault();
+  const form = document.getElementById("create-ticket-form");
 
-        // 1️⃣ Get token from localStorage (saved by Dev 2)
-        const token = localStorage.getItem("access_token");
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
 
-        if (!token) {
-            alert("You are not logged in. Please login first.");
-            return;
-        }
 
-        // 2️⃣ Collect form data
-        const ticketData = {
-            title: document.getElementById("title").value.trim(),
-            category: document.getElementById("category").value,
-            description: document.getElementById("description").value.trim()
-        };
+    // 2️⃣ Collect form data
+    const ticketData = {
+      title: document.getElementById("title").value.trim(),
+      category: document.getElementById("category").value,
+      description: document.getElementById("description").value.trim(),
+    };
 
-        // 3️⃣ Basic validation
-        if (!ticketData.title || !ticketData.category || !ticketData.description) {
-            alert("Please fill in all fields.");
-            return;
-        }
+    // 3️⃣ Basic validation
+    if (!ticketData.title || !ticketData.category || !ticketData.description) {
+      alert("Please fill in all fields.");
+      return;
+    }
 
-        try {
-            // 4️⃣ Call backend API (POST /tickets/)
-            const response = await fetch("http://localhost:8000/tickets/", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    "Authorization": "Bearer " + token
-                },
-                body: JSON.stringify(ticketData)
-            });
+    try {
+      // 4️⃣ Call backend API (POST /tickets/)
+      const response = await fetch("http://localhost:8000/tickets/", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: "Bearer " + token,
+        },
+        body: JSON.stringify(ticketData),
+      });
 
-            // 5️⃣ Handle response
+      // 5️⃣ Handle response
             if (response.ok) {
                 alert("Ticket created successfully!");
-                form.reset(); // clear form
+                window.location.href = "dashboard.html"; // Go back to dashboard
             } else {
                 const errorData = await response.json();
                 alert("Error: " + (errorData.detail || "Failed to create ticket"));
+                
+                // If token expired, force logout
+                if (response.status === 401) {
+                    window.location.href = "login.html";
+                }
             }
 
         } catch (error) {
-            console.error("Network error:", error);
-            alert("Backend server is not running.");
+            console.error("Error:", error);
+            alert("Server error. Is the backend running?");
         }
     });
 });
